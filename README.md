@@ -48,3 +48,21 @@ Join our community of developers creating universal apps.
 
 - [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
 - [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+
+
+app --- 
+
+      (tabs) 
+            layout.tsx 
+            auth.tsx 
+            profile.tsx
+            index.tsx 
+      booking
+            confirmation.tsx 
+      services
+            [id].tsx
+      technican
+            [id].tsx
+            index.tsx 
+      _layout.tsx
+      +not-found.tsx      
