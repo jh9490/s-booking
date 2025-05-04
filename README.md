@@ -53,10 +53,10 @@ Join our community of developers creating universal apps.
 app --- 
 
       (tabs) 
-            layout.tsx 
-            auth.tsx 
+            _layout.tsx  --- tabs 
             profile.tsx
-            index.tsx 
+            messages.tsx
+            index.tsx  -> here i have the services 
       booking
             confirmation.tsx 
       services

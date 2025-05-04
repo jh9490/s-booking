@@ -10,6 +10,11 @@
       "resizeMode": "contain",
       "backgroundColor": "#fffff0"
     },
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "listUnknownPackages": false
+      }
+    },
     "scheme": "myapp",
     "userInterfaceStyle": "automatic",
     "newArchEnabled": true,
