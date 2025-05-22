@@ -1,6 +1,6 @@
 // File: app/services/[id].tsx
 
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -17,7 +17,9 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import DateTimePicker from '@react-native-community/datetimepicker';
 import { serviceImages } from '@/constants/serviceImages';
 import * as ImagePicker from 'expo-image-picker';
-
+import { uploadFileToDirectus, createRequest, getLastRequestByCustomer, submitReviewForRequest } from "@/api/requests";
+import { useAuth } from "@/context/AuthContext";
+import { LinearGradient } from 'expo-linear-gradient';
 const LOCATIONS = ['Unit: S123'];
 
 function generateSlots(date: Date) {
@@ -27,12 +29,12 @@ function generateSlots(date: Date) {
   slot2.setHours(14, 0, 0, 0);
   return [
     {
-      label: '10:00 - 11:00',
-      iso: slot1.toISOString(),
+      label: '8:00 - 12:00',
+      value: '08:00|12:00',
     },
     {
-      label: '14:00 - 15:00',
-      iso: slot2.toISOString(),
+      label: '12:00 - 16:00',
+      value: '12:00|16:00',
     },
   ];
 }
@@ -52,10 +54,11 @@ export default function ServiceDetail() {
   const [selectedDate, setSelectedDate] = useState<Date | null>(null);
   const [selectedSlot, setSelectedSlot] = useState<string | null>(null);
 
-  const [showReviewModal, setShowReviewModal] = useState(true);
+  const [showReviewModal, setShowReviewModal] = useState(false);
   const [reviewSubmitted, setReviewSubmitted] = useState(false);
   const [reviewRating, setReviewRating] = useState(0);
   const [reviewComment, setReviewComment] = useState('');
+  const [lastRequest, setLastRequest] = useState<any | null>(null);
 
   const scrollY = useRef(new Animated.Value(0)).current;
   const headerHeight = scrollY.interpolate({
@@ -68,25 +71,58 @@ export default function ServiceDetail() {
     outputRange: [24, 18],
     extrapolate: 'clamp',
   });
+  const { accessToken, user } = useAuth();
+  const onConfirm = async () => {
+    try {
+      const fileIds: string[] = [];
 
-  const onConfirm = () => {
-    router.push({
-      pathname: '/booking/confirmation',
-      params: {
-        id,
-        location,
-        description,
-        datetime: selectedSlot,
-      },
-    });
+      for (const file of mediaFiles) {
+        const id = await uploadFileToDirectus(file.uri, accessToken!);
+        fileIds.push(id);
+      }
+
+      await createRequest(
+        {
+          service: Number(id),
+          profile: user!.profile_id,
+          additional_details: description,
+          images: fileIds.length === 1 ? fileIds[0] : fileIds,
+          prefered_date: selectedDate?.toISOString().split("T")[0] || "",
+          prefered_time_slot: selectedSlot || "",
+        },
+        accessToken!
+      );
+
+      router.push({
+        pathname: "/booking/confirmation",
+        params: { id, location, description, datetime: selectedSlot },
+      });
+    } catch (err: any) {
+      console.error(err.message);
+      alert("Something went wrong while submitting your request.");
+    }
   };
 
-  const handleReviewSubmit = () => {
-    if (reviewRating > 0) {
+
+  const handleReviewSubmit = async () => {
+    if (!reviewRating || !lastRequest?.id) {
+      alert("Please leave a star rating before proceeding.");
+      return;
+    }
+
+    try {
+      await submitReviewForRequest(
+        lastRequest.id,
+        reviewRating,
+        reviewComment,
+        accessToken!
+      );
+
       setReviewSubmitted(true);
       setShowReviewModal(false);
-    } else {
-      alert('Please leave a star rating before proceeding.');
+    } catch (err: any) {
+      console.error("Failed to submit review:", err.message);
+      alert("Could not submit review. Please try again.");
     }
   };
 
@@ -114,6 +150,29 @@ export default function ServiceDetail() {
     }
   };
 
+
+  useEffect(() => {
+    const fetchLastRequest = async () => {
+      if (!accessToken || !user?.profile_id) return;
+
+      try {
+        const last = await getLastRequestByCustomer(user.profile_id, accessToken);
+        console.log(last)
+        if (last) {
+          setLastRequest(last);
+          setShowReviewModal(true);
+        } else {
+          setReviewSubmitted(true); // ✅ No last request, go straight to booking
+        }
+      } catch (err) {
+        console.error("Error loading last request", err);
+        setReviewSubmitted(true); // Fallback: allow access
+      }
+    };
+
+    fetchLastRequest();
+  }, []);
+
   return (
     <View style={{ flex: 1, backgroundColor: '#fff' }}>
       <Animated.View style={[styles.animatedHeader, { height: headerHeight }]}>
@@ -132,12 +191,14 @@ export default function ServiceDetail() {
           <View style={styles.modalContainer}>
             <Text style={styles.modalTitle}>Please review your previous request</Text>
             <Text style={{ fontSize: 16, marginVertical: 10 }}>How was the last service?</Text>
-            <View style={styles.prevDetailsBox}>
-              <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Service:</Text> AC Repair</Text>
-              <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Location:</Text> Unit S123</Text>
-              <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Date:</Text> 12 April 2025</Text>
-              <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Technician Note:</Text> Issue resolved and filters cleaned.</Text>
-            </View>
+            {lastRequest && (
+              <View style={styles.prevDetailsBox}>
+                <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Service:</Text> {lastRequest.service?.title || 'N/A'}</Text>
+                <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Date:</Text> {new Date(lastRequest.date_created).toLocaleDateString()}</Text>
+
+                {/* <Text style={styles.prevDetail}><Text style={{ fontWeight: '600' }}>Note:</Text> You can customize this field</Text> */}
+              </View>
+            )}
             <View style={{ flexDirection: 'row', marginBottom: 12 }}>
               {[1, 2, 3, 4, 5].map((star) => (
                 <Pressable key={star} onPress={() => setReviewRating(star)}>
@@ -161,8 +222,17 @@ export default function ServiceDetail() {
               style={[styles.button, { marginBottom: 12 }]}
               onPress={handleReviewSubmit}
             >
-              <Text style={styles.buttonText}>Submit Review</Text>
+              <LinearGradient
+                colors={['#326AA6', '#073260']}
+                start={{ x: 0, y: 0 }}
+                end={{ x: 1, y: 1 }}
+                className="px-4 py-3 rounded-lg"
+              >
+                <Text style={styles.buttonText}>Submit Review</Text>
+              </LinearGradient>
+
             </Pressable>
+
             <Pressable onPress={() => router.back()}>
               <Text style={{ color: '#007AFF', textAlign: 'center' }}>Back</Text>
             </Pressable>
@@ -179,15 +249,17 @@ export default function ServiceDetail() {
           )}
           scrollEventThrottle={16}
         >
-          <View style={{ borderRadius: 12, overflow: 'hidden', marginBottom: 20 }}>
-            <View style={{ height: 180, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' }}>
-              <Image
-                source={serviceImages[image]}
-                style={{ width: '100%', height: 180 }}
-                resizeMode="cover"
-              />
+          {typeof image === 'string' && image.startsWith('http') ? (
+            <Image
+              source={{ uri: image }}
+              style={{ width: '100%', height: 180 }}
+              resizeMode="cover"
+            />
+          ) : (
+            <View style={{ width: '100%', height: 180, backgroundColor: '#eee', justifyContent: 'center', alignItems: 'center' }}>
+              <Text style={{ color: '#999' }}>No image</Text>
             </View>
-          </View>
+          )}
 
           <Text style={styles.label}>Unit</Text>
           <View style={styles.dropdown}>
@@ -224,17 +296,17 @@ export default function ServiceDetail() {
               <View style={styles.slotsContainer}>
                 {generateSlots(selectedDate).map((slot) => (
                   <Pressable
-                    key={slot.iso}
+                    key={slot.value}
                     style={[
                       styles.slotButton,
-                      selectedSlot === slot.iso && styles.slotButtonSelected,
+                      selectedSlot === slot.value && styles.slotButtonSelected,
                     ]}
-                    onPress={() => setSelectedSlot(slot.iso)}
+                    onPress={() => setSelectedSlot(slot.value)}
                   >
                     <Text
                       style={[
                         styles.slotText,
-                        selectedSlot === slot.iso && styles.slotTextSelected,
+                        selectedSlot === slot.value && styles.slotTextSelected,
                       ]}
                     >
                       {slot.label}
@@ -261,15 +333,24 @@ export default function ServiceDetail() {
           </View>
 
           <Pressable
-            style={[
-              styles.button,
-              (!selectedDate || !selectedSlot || !description.trim()) && styles.buttonDisabled,
-            ]}
+            style={[styles.button]}
             disabled={!selectedDate || !selectedSlot || !description.trim()}
             onPress={onConfirm}
           >
-            <Text style={styles.buttonText}>Confirm Booking</Text>
+            <LinearGradient
+              colors={
+                !selectedDate || !selectedSlot || !description.trim()
+                  ? ['#cccccc', '#aaaaaa']  // Gray gradient when disabled
+                  : ['#326AA6', '#073260']  // Normal gradient
+              }
+              start={{ x: 0, y: 0 }}
+              end={{ x: 1, y: 1 }}
+              className="px-4 py-3 rounded-lg"
+            >
+              <Text style={styles.buttonText}>Confirm Booking</Text>
+            </LinearGradient>
           </Pressable>
+
         </Animated.ScrollView>
       )}
     </View>
@@ -355,7 +436,6 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
   },
   button: {
-    backgroundColor: '#007AFF',
     marginTop: 30,
     borderRadius: 8,
     paddingVertical: 14,

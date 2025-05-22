@@ -1,4 +1,4 @@
-import { useLocalSearchParams , useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import {
     View, Text, Pressable, StyleSheet, Linking, Platform,
     TextInput, ScrollView
@@ -6,7 +6,9 @@ import {
 import { useState } from 'react';
 import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
-
+import { updateBookingNotes } from '@/api/booking';
+import { updateRequestStatus } from '@/api/requests';
+import { useAuth } from '@/context/AuthContext';
 type TimelineItem = {
     status: 'pending' | 'done' | 'cancel';
     note: string;
@@ -15,12 +17,38 @@ type TimelineItem = {
 
 export default function TechnicianDetail() {
     const router = useRouter();
-    const { id } = useLocalSearchParams<{ id: string }>();
+    const {
+        id,               // booking id
+        request_id,       // request id
+        request_status,
+        service,
+        first_name,
+        last_name,
+        mobile_number,
+        technician_notes,
+        unit,
+        building,
+        villa,
+        additional_details
+    } = useLocalSearchParams<{
+        id: string;
+        request_id: string;
+        request_status: string;
+        service: string;
+        first_name: string;
+        last_name: string;
+        mobile_number: string;
+        technician_notes: string;
+        unit: string;
+        building: string;
+        villa: string
+        additional_details: string
+    }>();
     const [status, setStatus] = useState<'pending' | 'done' | 'cancel'>('pending');
     const [showNotes, setShowNotes] = useState(false);
     const [notes, setNotes] = useState('');
     const [history, setHistory] = useState<TimelineItem[]>([]);
-
+    const { accessToken } = useAuth();
     const booking = {
         id,
         service: 'AC Repair',
@@ -44,20 +72,25 @@ export default function TechnicianDetail() {
         setShowNotes(true);
     };
 
-    const handleConfirm = () => {
-        if (!notes.trim()) return;
-
-        const timestamp = new Date().toLocaleString();
-
-        const newItem: TimelineItem = {
-            status,
-            note: notes.trim(),
-            timestamp,
-        };
-
-        setHistory((prev) => [...prev, newItem]);
-        setShowNotes(false);
-        setNotes('');
+    const handleConfirm = async () => {
+        try {
+            if (!notes.trim()) {
+              alert("Please add technician notes before submitting.");
+              return;
+            }
+        
+            // 1. Update booking notes
+            await updateBookingNotes(Number(id), notes, accessToken!);
+        
+            // 2. Update request status
+            await updateRequestStatus(Number(request_id), status, accessToken!);
+        
+            alert("Request and notes updated successfully.");
+            router.back(); // or navigate to home
+          } catch (err: any) {
+            console.error("Update failed:", err.message);
+            alert("Failed to update status and notes.");
+          }
     };
 
     return (
@@ -66,32 +99,41 @@ export default function TechnicianDetail() {
                 <Pressable onPress={() => router.back()} style={styles.backButton}>
                     <Ionicons name="arrow-back" size={24} color="#007AFF" />
                 </Pressable>
-                <Text style={styles.headerText}>Booking #{booking.id}</Text>
+                <Text style={styles.headerText}>Booking #{id}</Text>
             </View>
-            <Text style={styles.label}>Service: <Text style={styles.value}>{booking.service}</Text></Text>
-            <Text style={styles.label}>Customer: <Text style={styles.value}>{booking.customer}</Text></Text>
-            <Text style={styles.label}>Phone: <Text style={styles.value}>{booking.phone}</Text></Text>
-            <Text style={styles.label}>Address:</Text>
-            <Text style={styles.address}>{booking.address}</Text>
-
-            <Pressable onPress={openMap} style={styles.mapContainer}>
-                <MapView
-                    style={styles.map}
-                    initialRegion={{
-                        latitude: booking.lat,
-                        longitude: booking.lng,
-                        latitudeDelta: 0.005,
-                        longitudeDelta: 0.005,
-                    }}
-                    pointerEvents="none"
-                >
-                    <Marker coordinate={{ latitude: booking.lat, longitude: booking.lng }} />
-                </MapView>
-                <View style={styles.mapOverlay}>
-                    <Ionicons name="location" size={20} color="#fff" />
-                    <Text style={styles.mapText}>Open in Maps</Text>
+            <View style={styles.infoCard}>
+                <Text style={styles.cardTitle}>Customer Details</Text>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Service:</Text>
+                    <Text style={styles.infoValue}>{service}</Text>
                 </View>
-            </Pressable>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Customer:</Text>
+                    <Text style={styles.infoValue}>{first_name} {last_name}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Mobile:</Text>
+                    <Text style={styles.infoValue}>{mobile_number}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Unit:</Text>
+                    <Text style={styles.infoValue}>{unit || 'N/A'}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Villa:</Text>
+                    <Text style={styles.infoValue}>{villa || 'N/A'}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Building:</Text>
+                    <Text style={styles.infoValue}>{building || 'N/A'}</Text>
+                </View>
+                <View style={styles.infoRow}>
+                    <Text style={styles.infoLabel}>Customer Notes:</Text>
+                    <Text style={styles.infoValue}>{additional_details || '—'}</Text>
+                </View>
+            </View>
+
+
 
             <View style={styles.buttonsRow}>
                 {['pending', 'done', 'cancel'].map((type) => (
@@ -169,16 +211,16 @@ const styles = StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         marginBottom: 12,
-      },
-      backButton: {
+    },
+    backButton: {
         marginRight: 8,
-      },
-      headerText: {
+    },
+    headerText: {
         fontSize: 24,
         fontWeight: 'bold',
         color: '#111827',
-      },
-      
+    },
+
     mapContainer: { marginTop: 12, borderRadius: 12, overflow: 'hidden', position: 'relative' },
     map: { width: '100%', height: 180 },
     mapOverlay: {
@@ -244,4 +286,39 @@ const styles = StyleSheet.create({
     timelineContent: { flex: 1 },
     timelineText: { fontSize: 14, fontWeight: '500', marginBottom: 4 },
     timelineNote: { fontSize: 14, color: '#555' },
+    infoCard: {
+        backgroundColor: '#f9fafb',
+        padding: 16,
+        borderRadius: 12,
+        borderWidth: 1,
+        borderColor: '#e5e7eb',
+        marginBottom: 20,
+        shadowColor: "#000",
+        shadowOpacity: 0.05,
+        shadowOffset: { width: 0, height: 2 },
+        shadowRadius: 4,
+        elevation: 2,
+      },
+      cardTitle: {
+        fontSize: 16,
+        fontWeight: "bold",
+        color: "#111827",
+        marginBottom: 12,
+      },
+      infoRow: {
+        flexDirection: "row",
+        justifyContent: "space-between",
+        marginBottom: 8,
+      },
+      infoLabel: {
+        fontSize: 14,
+        color: "#6b7280",
+        fontWeight: "500",
+      },
+      infoValue: {
+        fontSize: 14,
+        color: "#111827",
+        fontWeight: "600",
+      },
+      
 });

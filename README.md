@@ -59,6 +59,11 @@ app ---
             index.tsx  -> here i have the services 
       booking
             confirmation.tsx 
+      (supervisorTabs)
+            requests
+                  [id].tsx
+            _layout.tsx
+            index.tsx
       services
             [id].tsx
       technican
@@ -66,3 +71,9 @@ app ---
             index.tsx 
       _layout.tsx
       +not-found.tsx      
+      index.tsx 
+      login.tsx
+context 
+      UserContext.tsx
+api
+      requests.tsx

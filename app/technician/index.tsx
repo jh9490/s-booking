@@ -1,51 +1,47 @@
-// File: app/technician/index.tsx
-
-import { useState } from 'react';
-import { FlatList, Pressable, Text, View, StyleSheet, Dimensions } from 'react-native';
+import { useEffect, useState } from 'react';
+import { FlatList, Pressable, Text, View, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
-import MapView, { Marker } from 'react-native-maps';
 import { Ionicons } from '@expo/vector-icons';
+import { useAuth } from '@/context/AuthContext';
+import { getTechnicianBookings } from '@/api/booking';
 
-const bookings = [
-  {
-    id: '101',
-    customer: 'Alice',
-    time: '2025-04-23 10:00',
-    status: 'new',
-    lat: 25.276987,
-    lng: 55.296249,
-    locationText: 'Jumeirah 1, Dubai',
-    service: 'AC Repair',
-  },
-  {
-    id: '102',
-    customer: 'Bob',
-    time: '2025-04-24 14:00',
-    status: 'done',
-    lat: 25.204849,
-    lng: 55.270783,
-    locationText: 'Al Barsha, Dubai',
-    service: 'Plumbing',
-  },
-];
 
 export default function TechnicianList() {
   const router = useRouter();
+  const { user, accessToken } = useAuth();
+  const [bookings, setBookings] = useState<any[]>([]);
   const [filter, setFilter] = useState<'new' | 'done'>('new');
+  const { logout } = useAuth();
 
-  const filtered = bookings.filter(b => b.status === filter);
+  useEffect(() => {
+    const fetch = async () => {
+      try {
+        const data = await getTechnicianBookings(user!.profile_id, accessToken!);
+        setBookings(data);
+      } catch (err) {
+        console.error("Failed to load bookings", err);
+      }
+    };
+    fetch();
+  }, []);
+  const handleLogout = async () => {
+
+    await logout();
+    router.replace('/login'); // Redirect to login screen
+  };
+  const filtered = filter === 'done'
+    ? bookings.filter(b => b.request?.status === 'done')
+    : bookings.filter(b => b.request?.status === 'scheduled');
 
   return (
     <View style={styles.container}>
-      {/* Header */}
       <View style={styles.headerRow}>
-        {/* <Pressable onPress={() => router.back()} style={styles.backButton}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </Pressable> */}
         <Text style={styles.headerText}>My Bookings</Text>
+        <Pressable onPress={handleLogout} style={{ padding: 12 }}>
+      <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Logout</Text>
+    </Pressable>
       </View>
 
-      {/* Filter */}
       <View style={styles.filterRow}>
         {['new', 'done'].map(status => (
           <Pressable
@@ -63,42 +59,42 @@ export default function TechnicianList() {
         ))}
       </View>
 
-      {/* List */}
       <FlatList
         data={filtered}
-        keyExtractor={(item) => item.id}
+        keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
           <Pressable
-          style={styles.card}
-          onPress={() => router.push(`/technician/${item.id}`)}
-        >
-          <Text style={styles.service}>{item.service}</Text>
-          <Text style={styles.name}>{item.customer}</Text>
-          <Text style={styles.time}>{item.time}</Text>
-          <Text style={styles.locationText}>📍 {item.locationText}</Text>
-      
-          <MapView
-            style={styles.map}
-            initialRegion={{
-              latitude: item.lat,
-              longitude: item.lng,
-              latitudeDelta: 0.01,
-              longitudeDelta: 0.01,
-            }}
-            scrollEnabled={false}
-            zoomEnabled={false}
-            rotateEnabled={false}
-            pitchEnabled={false}
+            style={styles.card}
+            onPress={() =>
+              router.push({
+                pathname: '/technician/[id]',
+                params: {
+                  id: item.id.toString(),
+                  request_id: item.request.id.toString(),
+                  status: item.request.status,
+                  service: item.request.service.title,
+                  additional_details:item.request.additional_details,
+                  first_name: item.request.profile.user?.first_name || '',
+                  last_name: item.request.profile.user?.last_name || '',
+                  mobile_number: item.request.profile.mobile_number,
+                  technician_notes: item.technician_notes || '',
+                  unit: item.request.profile.unit || '',
+                  building: item.request.profile.building || '', 
+                  villa: item.request.profile.villa || ''
+                },
+              })
+            }
           >
-            <Marker coordinate={{ latitude: item.lat, longitude: item.lng }} />
-          </MapView>
-        </Pressable>
+            <Text style={styles.service}>{item.request?.service?.title || "Service"}</Text>
+            <Text style={styles.name}>{item.request?.customer?.customer_name || "Customer"}</Text>
+            <Text style={styles.time}>{item.date} - {item.time_slot}</Text>
+            {/* Map removed as per your request */}
+          </Pressable>
         )}
       />
     </View>
   );
 }
-
 const styles = StyleSheet.create({
   container: {
     flex: 1,

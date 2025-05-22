@@ -1,19 +1,24 @@
 // File: app/components/HomeHeader.tsx
-import { SafeAreaView, View, Text, TextInput, Image, Pressable, FlatList, Dimensions } from 'react-native';
+import { SafeAreaView, View, Text, TextInput, Image, Pressable, FlatList, Dimensions , StyleSheet } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { useState, useRef, useEffect } from 'react';
+import { useUser } from "../context/UserContext";
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 // Mock banner images
 const banners = [
-  require('../assets/images/banner.png'),
-  require('../assets/images/banner2.png'),
+  require('../assets/images/banner_3.png'),
 ];
 
 export default function HomeHeader() {
   const [activeIndex, setActiveIndex] = useState(0);
   const flatListRef = useRef<FlatList<any>>(null);
 
+  const { user , logout } = useAuth();
+  const router = useRouter();
+  const firstName = user?.first_name || "Guest";
   // Auto-slide effect
   useEffect(() => {
     const interval = setInterval(() => {
@@ -33,27 +38,27 @@ export default function HomeHeader() {
     setActiveIndex(newIndex);
   };
 
+  const handleLogout = async () => {
+
+    await logout();
+    router.replace('/login'); // Redirect to login screen
+  };
+
   return (
     <SafeAreaView edges={['top']} className="bg-white">
       {/* Greeting + Location + Search */}
-      <View className="px-4 pt-2 pb-4">
-        <Text className="text-lg font-semibold">👋 Hello, Jaber</Text>
-
-        <Pressable className="flex-row items-center mt-2 mb-3">
-          <Ionicons name="location-sharp" size={16} color="#1F2937" />
-          <Text className="text-sm text-gray-700 mx-2 flex-1">
-            202, Croesus, Majan, Dubai
-          </Text>
-          <Ionicons name="chevron-down" size={16} color="#1F2937" />
+      <View className="px-4 pt-2 pb-4" style={styles.headerRow}>
+        <Text className="text-lg font-semibold">👋 Hello, {firstName}</Text>
+        <Pressable onPress={handleLogout} style={{ padding: 12 }}>
+          <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Logout</Text>
         </Pressable>
-
-        <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
+        {/* <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
           <Ionicons name="search" size={20} color="#9CA3AF" />
           <TextInput
             placeholder="Search for Dry Cleaningr"
             className="ml-2 flex-1 text-sm text-gray-800"
           />
-        </View>
+        </View> */}
       </View>
 
       {/* Banner Carousel */}
@@ -80,9 +85,8 @@ export default function HomeHeader() {
           {banners.map((_, i) => (
             <View
               key={i}
-              className={`h-2 w-2 rounded-full ${
-                i === activeIndex ? 'bg-blue-600' : 'bg-gray-300'
-              }`}
+              className={`h-2 w-2 rounded-full ${i === activeIndex ? 'bg-blue-600' : 'bg-gray-300'
+                }`}
             />
           ))}
         </View>
@@ -90,3 +94,11 @@ export default function HomeHeader() {
     </SafeAreaView>
   );
 }
+
+const styles = StyleSheet.create({
+  headerRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between', 
+    marginBottom: 16,
+  },
+})
