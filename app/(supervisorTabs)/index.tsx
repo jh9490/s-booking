@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, ScrollView } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
@@ -61,7 +61,11 @@ export default function SupervisorRequestsList() {
     <View className="flex-1 bg-white p-4">
       {/* <Text className="text-xl font-bold mb-4">Service Requests</Text> */}
 
-      <View className="flex-row flex-wrap gap-2 mb-4">
+      <ScrollView
+        horizontal={true}
+        showsHorizontalScrollIndicator={false}
+        className="flex-row gap-2 mb-4" // Removed flex-wrap
+      >
         {STATUS_TAGS.map(({ label, color }) => (
           <Pressable
             key={label}
@@ -86,7 +90,7 @@ export default function SupervisorRequestsList() {
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
