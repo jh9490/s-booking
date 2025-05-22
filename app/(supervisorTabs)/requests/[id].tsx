@@ -152,27 +152,54 @@ export default function RequestDetail() {
       />
 
       <Text style={styles.label}>Select Time Slot (Range)</Text>
-      <Text style={{ marginTop: 8 }}>Start Time: {formatHour(startHour)}</Text>
-      <Slider
-        minimumValue={8}
-        maximumValue={endHour - 1}
-        step={1}
-        value={startHour}
-        onValueChange={(val) => setStartHour(Math.min(val, endHour - 1))}
-        minimumTrackTintColor="#007AFF"
-        maximumTrackTintColor="#ccc"
-      />
+      <View style={styles.inputRow}>
+        <Text>Start Hour:</Text>
+        <TextInput
+          style={styles.timeInput}
+          keyboardType="numeric"
+          value={String(startHour)}
+          onChangeText={(text) => {
+            const num = parseInt(text, 10);
 
-      <Text style={{ marginTop: 16 }}>End Time: {formatHour(endHour)}</Text>
-      <Slider
-        minimumValue={startHour + 1}
-        maximumValue={18}
-        step={1}
-        value={endHour}
-        onValueChange={(val) => setEndHour(Math.max(val, startHour + 1))}
-        minimumTrackTintColor="#007AFF"
-        maximumTrackTintColor="#ccc"
-      />
+            if (isNaN(num) && text !== "") return; // Ignore non-numeric input unless it's an empty string
+
+            let validatedStartHour = isNaN(num) ? 8 : num; // Default to 8 if empty or invalid
+
+            validatedStartHour = Math.max(8, validatedStartHour); // Min 8 AM
+            // Clamp against endHour: must be at least 1 less than endHour.
+            // Also ensure endHour - 1 doesn't go below the absolute min of 8.
+            validatedStartHour = Math.min(validatedStartHour, Math.max(8, endHour - 1));
+            validatedStartHour = Math.min(validatedStartHour, 17); // Max 5 PM (to allow endHour to be 6 PM)
+            
+            setStartHour(validatedStartHour);
+          }}
+        />
+        <Text style={{ marginLeft: 5 }}>{formatHour(startHour)}</Text>
+      </View>
+
+      <View style={styles.inputRow}>
+        <Text>End Hour:</Text>
+        <TextInput
+          style={styles.timeInput}
+          keyboardType="numeric"
+          value={String(endHour)}
+          onChangeText={(text) => {
+            const num = parseInt(text, 10);
+            if (isNaN(num) && text !== "") return;
+
+            let validatedEndHour = isNaN(num) ? 18 : num; // Default to 18 if empty or invalid
+
+            validatedEndHour = Math.min(18, validatedEndHour); // Max 6 PM
+            // Clamp against startHour: must be at least 1 greater than startHour.
+            // Also ensure startHour + 1 doesn't exceed the absolute max of 18.
+            validatedEndHour = Math.max(validatedEndHour, Math.min(18, startHour + 1));
+            validatedEndHour = Math.max(validatedEndHour, 9); // Min 9 AM 
+            
+            setEndHour(validatedEndHour);
+          }}
+        />
+        <Text style={{ marginLeft: 5 }}>{formatHour(endHour)}</Text>
+      </View>
 
       <Text style={styles.label}>Technician</Text>
       <ScrollView horizontal style={{ marginVertical: 10 }}>
@@ -360,5 +387,19 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontWeight: "600",
   },
-
+  timeInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginLeft: 10,
+    minWidth: 50,
+    textAlign: 'center',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+  }
 });
