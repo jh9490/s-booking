@@ -98,7 +98,7 @@ export default function SupervisorRequestsList() {
           keyExtractor={(item) => item.id.toString()}
           renderItem={({ item }) => (
             <Pressable
-              className="p-4 mb-2 border rounded-lg bg-gray-50"
+              className="py-3 px-4 mb-3 border border-gray-200 rounded-xl bg-white shadow-sm"
               onPress={() =>
                 router.push({
                   pathname: '/(supervisorTabs)/requests/[id]',
@@ -132,10 +132,10 @@ export default function SupervisorRequestsList() {
                   }}
                 />
                 <Text
+                  className="text-sm font-semibold"
                   style={{
                     color:
                       STATUS_TAGS.find((s) => s.label === item.status)?.color || '#333',
-                    fontWeight: 'bold',
                   }}
                 >
                   {item.status}
