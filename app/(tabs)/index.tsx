@@ -119,9 +119,6 @@ export default function HomeScreen() {
 
   
   useEffect(() => {
-    //  console.log(authLoading);
-    //  console.log(accessToken);
-    //  console.log(user);
     if (!authLoading && accessToken && user) {
       fetchCategories();
     }
