@@ -18,7 +18,9 @@ export const uploadFileToDirectus = async (uri: string, accessToken: string): Pr
       body: formData,
     });
   
+    
     const json = await res.json();
+   
     if (!res.ok || json.errors) throw new Error("File upload failed");
     return json.data.id;
   };
@@ -28,13 +30,13 @@ export const uploadFileToDirectus = async (uri: string, accessToken: string): Pr
       service: number;
       profile: number;
       additional_details: string;
-      images: string[] | string;
+      files: any[] | any;
       prefered_date: string;
       prefered_time_slot: string;
     },
     accessToken: string
   ) => {
-    console.log(JSON.stringify(payload));
+    
     const res = await fetch(`${baseUrl}/items/request`, {
       method: "POST",
       headers: {
@@ -62,7 +64,7 @@ export const uploadFileToDirectus = async (uri: string, accessToken: string): Pr
     });
     
     const json = await res.json();
-    console.log(json);
+
     if (!res.ok || json.errors) throw new Error("Failed to fetch last request");
   
     return json.data?.[0] ?? null;
@@ -124,6 +126,21 @@ export const uploadFileToDirectus = async (uri: string, accessToken: string): Pr
     return json.data || [];
   };
   
+
+  export const getRequest = async (request_id : string ,accessToken: string) => {
+    const url = `${baseUrl}/items/request?filter[id][_eq]=${request_id}&fields=*,files.directus_files_id.*,service.title,profile.*,profile.user.first_name,profile.user.last_name`;
+  
+    const res = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+      },
+    });
+  
+    const json = await res.json();
+    
+    if (!res.ok || json.errors) throw new Error("Failed to fetch all requests");
+    return json.data || [];
+  };
 
 
   export const updateRequestStatus = async (

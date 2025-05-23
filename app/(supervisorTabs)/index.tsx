@@ -1,5 +1,5 @@
 import React, { useCallback, useEffect, useState } from 'react';
-import { View, Text, FlatList, Pressable, ActivityIndicator } from 'react-native';
+import { View, Text, FlatList, Pressable, ActivityIndicator, ScrollView, StyleSheet } from 'react-native';
 import { useFocusEffect, useRouter } from 'expo-router';
 
 import { useAuth } from '@/context/AuthContext';
@@ -36,57 +36,64 @@ export default function SupervisorRequestsList() {
     fetchData();
   }, []);
 
-   useFocusEffect(
-      useCallback(() => {
-        const fetchData = async () => {
-          try {
-            const data = await getAllRequests(accessToken!);
-            setRequests(data);
-          } catch (err) {
-            console.error("Error loading supervisor requests:", err);
-          } finally {
-            setLoading(false);
-          }
-        };
-    
-        fetchData();
-      }, [])
-    );
+  useFocusEffect(
+    useCallback(() => {
+      const fetchData = async () => {
+        try {
+          const data = await getAllRequests(accessToken!);
+          setRequests(data);
+        } catch (err) {
+          console.error("Error loading supervisor requests:", err);
+        } finally {
+          setLoading(false);
+        }
+      };
+
+      fetchData();
+    }, [])
+  );
 
   const filteredRequests = filter
     ? requests.filter((req) => req.status === filter)
     : requests;
 
   return (
-    <View className="flex-1 bg-white p-4">
+    <View className="bg-white p-4">
       {/* <Text className="text-xl font-bold mb-4">Service Requests</Text> */}
-
-      <View className="flex-row flex-wrap gap-2 mb-4">
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        contentContainerStyle={styles.contentContainer}
+      >
         {STATUS_TAGS.map(({ label, color }) => (
           <Pressable
             key={label}
             onPress={() => setFilter(label === filter ? null : label)}
             style={{
-              paddingVertical: 6,
+              paddingVertical: 4,
               paddingHorizontal: 12,
               borderRadius: 999,
               backgroundColor: filter === label ? color : '#F3F4F6',
               borderWidth: 1,
               borderColor: filter === label ? color : '#E5E7EB',
+              marginRight: 8,
             }}
           >
             <Text
               style={{
                 color: filter === label ? '#fff' : '#1F2937',
                 fontWeight: '600',
-                fontSize: 14,
+                fontSize: 13,
+                lineHeight: 16,
               }}
             >
               {label}
             </Text>
           </Pressable>
         ))}
-      </View>
+      </ScrollView>
+
+
 
       {loading ? (
         <View className="flex-1 items-center justify-center">
@@ -102,15 +109,15 @@ export default function SupervisorRequestsList() {
               onPress={() =>
                 router.push({
                   pathname: '/(supervisorTabs)/requests/[id]',
-                  params: { 
-                    id: item.id ,
-                    first_name : item.profile.user.first_name , 
-                    mobile_number: item.profile.mobile_number ,
-                    unit: item.profile.unit, 
-                    prefered_date:item.prefered_date, 
-                    prefered_time_slot:item.prefered_time_slot, 
+                  params: {
+                    id: item.id,
+                    first_name: item.profile.user.first_name,
+                    mobile_number: item.profile.mobile_number,
+                    unit: item.profile.unit,
+                    prefered_date: item.prefered_date,
+                    prefered_time_slot: item.prefered_time_slot,
                     status: item.status
-                   },
+                  },
                 })
               }
             >
@@ -148,3 +155,8 @@ export default function SupervisorRequestsList() {
     </View>
   );
 }
+const styles = StyleSheet.create({
+  contentContainer: {
+    paddingVertical: 20,
+  }
+});

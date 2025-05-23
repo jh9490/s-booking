@@ -14,7 +14,6 @@ import {
   KeyboardAvoidingView,
   SafeAreaView,
 } from "react-native";
-import Slider from "@react-native-community/slider";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
 import DateTimePicker from "@react-native-community/datetimepicker";
@@ -22,33 +21,29 @@ import { useAuth } from '@/context/AuthContext';
 import { getTechnicians } from "@/api/profile";
 import { createBooking } from "@/api/booking";
 import { updateRequestStatus } from "@/api/requests";
-// const technicians = [
-//   { id: "tech1", name: "Ahmed" },
-//   { id: "tech2", name: "Sara" },
-//   { id: "tech3", name: "Omar" },
-//   { id: "tech4", name: "Fatima" },
-//   { id: "tech5", name: "Ali" },
-// ];
-
 
 export default function RequestDetail() {
-  const { id, first_name, mobile_number, unit, prefered_date, prefered_time_slot, status } = useLocalSearchParams<{
-    id: string;
-    first_name: string;
-    mobile_number: string;
-    unit: string;
-    prefered_date: string;
-    prefered_time_slot: string,
-    status: string
-  }>();
+  const { id, first_name, mobile_number, unit, prefered_date, prefered_time_slot, status } = useLocalSearchParams();
   const router = useRouter();
-
   const { accessToken } = useAuth();
-  const [technicians, setTechnicians] = useState<{ id: string; user: any }[]>([]);
+
+  const [technicians, setTechnicians] = useState([]);
+  const [selectedDate, setSelectedDate] = useState(new Date());
+  const [startHour, setStartHour] = useState(9);
+  const [endHour, setEndHour] = useState(12);
+  const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const [chatVisible, setChatVisible] = useState(false);
+  const [messages, setMessages] = useState([
+    { id: "1", text: "Hello, I need help with my service.", sender: "customer" },
+    { id: "2", text: "Sure, I'm here to assist.", sender: "supervisor" },
+  ]);
+  const [input, setInput] = useState("");
+  const flatListRef = useRef(null);
+
   useEffect(() => {
     const fetchTechs = async () => {
       try {
-        const data = await getTechnicians(accessToken!);
+        const data = await getTechnicians(accessToken);
         setTechnicians(data);
       } catch (err) {
         console.error("Failed to load technicians", err);
@@ -57,19 +52,7 @@ export default function RequestDetail() {
     fetchTechs();
   }, []);
 
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
-  const [startHour, setStartHour] = useState(9);
-  const [endHour, setEndHour] = useState(12);
-  const [selectedTechnician, setSelectedTechnician] = useState<string | null>(null);
-  const [chatVisible, setChatVisible] = useState(false);
-  const [messages, setMessages] = useState([
-    { id: "1", text: "Hello, I need help with my service.", sender: "customer" },
-    { id: "2", text: "Sure, I'm here to assist.", sender: "supervisor" },
-  ]);
-  const [input, setInput] = useState("");
-  const flatListRef = useRef<FlatList>(null);
-
-  const formatHour = (hour: number) => {
+  const formatHour = (hour) => {
     const isPM = hour >= 12;
     const displayHour = hour % 12 === 0 ? 12 : hour % 12;
     return `${displayHour} ${isPM ? "PM" : "AM"}`;
@@ -78,25 +61,20 @@ export default function RequestDetail() {
   const onAssign = async () => {
     try {
       if (!selectedTechnician) throw new Error("Technician not selected");
-
       const timeSlot = `${formatHour(startHour)}|${formatHour(endHour)}`;
       const formattedDate = selectedDate.toISOString().split("T")[0];
 
-      const booking = await createBooking(
-        {
-          request: Number(id),
-          technician: Number(selectedTechnician),
-          time_slot: timeSlot,
-          date: formattedDate,
-        },
-        accessToken!
-      );
+      const booking = await createBooking({
+        request: Number(id),
+        technician: Number(selectedTechnician),
+        time_slot: timeSlot,
+        date: formattedDate,
+      }, accessToken);
 
-      await updateRequestStatus(Number(id), "scheduled", accessToken!, booking.id);
-
+      await updateRequestStatus(Number(id), "scheduled", accessToken, booking.id);
       alert("Booking successfully created");
       router.back();
-    } catch (err: any) {
+    } catch (err) {
       console.error("Booking failed:", err.message);
       alert("Failed to create booking");
     }
@@ -111,68 +89,70 @@ export default function RequestDetail() {
     };
     setMessages([...messages, newMsg]);
     setInput("");
-    setTimeout(() => {
-      flatListRef.current?.scrollToEnd({ animated: true });
-    }, 100);
+    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
   };
 
   return (
     <ScrollView style={styles.container}>
-      {/* <View style={styles.header}>
-        <Pressable onPress={() => router.back()}>
-          <Ionicons name="arrow-back" size={24} color="#007AFF" />
-        </Pressable>
-        <Text style={styles.headerTitle}>Request #{id}</Text>
-      </View> */}
-
       <View style={styles.infoCard}>
         <Text style={styles.infoTitle}>Request Details</Text>
-
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Unit:</Text>
-          <Text style={styles.infoValue}>{unit || 'N/A'}</Text>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>Unit:</Text><Text style={styles.infoValue}>{unit || 'N/A'}</Text></View>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>Customer:</Text><Text style={styles.infoValue}>{first_name} - {mobile_number}</Text></View>
+        <View style={styles.infoRow}><Text style={styles.infoLabel}>Preferred Slot:</Text><Text style={styles.infoValue}>{prefered_date} - {prefered_time_slot}</Text></View>
+      </View>
+      <View style={{ flexDirection: 'row', alignItems: 'center', gap: 24 }}>
+        <View style={{ flex: 1 }}>
+          <DateTimePicker
+            mode="date"
+            value={selectedDate}
+            minimumDate={new Date()}
+            onChange={(e, date) => date && setSelectedDate(date)}
+            style={{ width: '100%' }}
+          />
         </View>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Customer:</Text>
-          <Text style={styles.infoValue}>{first_name} - {mobile_number}</Text>
-        </View>
+        <View style={{ flex: 1 }}>
+          <View style={[styles.inputRow, { justifyContent: 'space-between' }]}>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontWeight: 'bold' }}>Start</Text>
+              <Pressable onPress={() => setStartHour(prev => Math.min(prev + 1, endHour - 1))}><Ionicons name="chevron-up" size={20} /></Pressable>
+              <TextInput
+                style={styles.timeInput}
+                keyboardType="numeric"
+                value={String(startHour)}
+                onChangeText={(text) => {
+                  const num = parseInt(text, 10);
+                  if (!isNaN(num)) {
+                    const validated = Math.min(Math.max(8, num), endHour - 1);
+                    setStartHour(validated);
+                  }
+                }}
+              />
+              <Pressable onPress={() => setStartHour(prev => Math.max(8, prev - 1))}><Ionicons name="chevron-down" size={20} /></Pressable>
+              <Text>{formatHour(startHour)}</Text>
+            </View>
 
-        <View style={styles.infoRow}>
-          <Text style={styles.infoLabel}>Preferred Slot:</Text>
-          <Text style={styles.infoValue}>{prefered_date} - {prefered_time_slot}</Text>
+            <View style={{ alignItems: 'center' }}>
+              <Text style={{ fontWeight: 'bold' }}>End</Text>
+              <Pressable onPress={() => setEndHour(prev => Math.min(18, prev + 1))}><Ionicons name="chevron-up" size={20} /></Pressable>
+              <TextInput
+                style={styles.timeInput}
+                keyboardType="numeric"
+                value={String(endHour)}
+                onChangeText={(text) => {
+                  const num = parseInt(text, 10);
+                  if (!isNaN(num)) {
+                    const validated = Math.max(startHour + 1, Math.min(18, num));
+                    setEndHour(validated);
+                  }
+                }}
+              />
+              <Pressable onPress={() => setEndHour(prev => Math.max(startHour + 1, prev - 1))}><Ionicons name="chevron-down" size={20} /></Pressable>
+              <Text>{formatHour(endHour)}</Text>
+            </View>
+          </View>
         </View>
       </View>
-      <Text style={styles.label}>Select Date</Text>
-      <DateTimePicker
-        mode="date"
-        value={selectedDate}
-        minimumDate={new Date()}
-        onChange={(e, date) => date && setSelectedDate(date)}
-      />
-
-      <Text style={styles.label}>Select Time Slot (Range)</Text>
-      <Text style={{ marginTop: 8 }}>Start Time: {formatHour(startHour)}</Text>
-      <Slider
-        minimumValue={8}
-        maximumValue={endHour - 1}
-        step={1}
-        value={startHour}
-        onValueChange={(val) => setStartHour(Math.min(val, endHour - 1))}
-        minimumTrackTintColor="#007AFF"
-        maximumTrackTintColor="#ccc"
-      />
-
-      <Text style={{ marginTop: 16 }}>End Time: {formatHour(endHour)}</Text>
-      <Slider
-        minimumValue={startHour + 1}
-        maximumValue={18}
-        step={1}
-        value={endHour}
-        onValueChange={(val) => setEndHour(Math.max(val, startHour + 1))}
-        minimumTrackTintColor="#007AFF"
-        maximumTrackTintColor="#ccc"
-      />
 
       <Text style={styles.label}>Technician</Text>
       <ScrollView horizontal style={{ marginVertical: 10 }}>
@@ -189,37 +169,27 @@ export default function RequestDetail() {
         ))}
       </ScrollView>
 
-      <Pressable style={styles.chatButton} onPress={() => setChatVisible(true)}>
+      {/* <Pressable style={styles.chatButton} onPress={() => setChatVisible(true)}>
         <Text style={styles.chatButtonText}>Chat with Customer</Text>
-      </Pressable>
+      </Pressable> */}
 
       <Pressable
-        style={[
-          styles.assignButton,
-          (!selectedTechnician || status === "done") && { backgroundColor: "#ccc" },
-        ]}
+        style={[styles.assignButton, (!selectedTechnician || status === "done") && { backgroundColor: "#ccc" }]}
         disabled={!selectedTechnician || status === "done"}
         onPress={onAssign}
       >
-        <Text style={styles.assignButtonText}>
-          {status === "done" ? "Done" : "Update"}
-        </Text>
+        <Text style={styles.assignButtonText}>{status === "done" ? "Done" : "Update"}</Text>
       </Pressable>
 
-      {/* Chat Modal */}
       <Modal visible={chatVisible} animationType="slide">
         <SafeAreaView style={{ flex: 1, backgroundColor: "white" }}>
-          <KeyboardAvoidingView
-            style={{ flex: 1 }}
-            behavior={Platform.OS === "ios" ? "padding" : undefined}
-          >
+          <KeyboardAvoidingView style={{ flex: 1 }} behavior={Platform.OS === "ios" ? "padding" : undefined}>
             <View style={styles.chatHeader}>
               <Pressable onPress={() => setChatVisible(false)}>
                 <Ionicons name="close" size={24} color="#000" />
               </Pressable>
               <Text style={styles.headerTitle}>Customer Chat</Text>
             </View>
-
             <FlatList
               ref={flatListRef}
               data={messages}
@@ -241,7 +211,6 @@ export default function RequestDetail() {
               contentContainerStyle={{ padding: 10 }}
               showsVerticalScrollIndicator={false}
             />
-
             <View style={styles.chatInputRow}>
               <TextInput
                 placeholder="Type a message"
@@ -280,12 +249,12 @@ const styles = StyleSheet.create({
     borderRadius: 20,
     marginHorizontal: 6,
   },
-  techCardSelected: { backgroundColor: "#007AFF" },
+  techCardSelected: { backgroundColor: "#65ADD4" },
   techText: { color: "#333" },
   techTextSelected: { color: "#fff", fontWeight: "bold" },
   chatButton: {
     marginTop: 20,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#65ADD4",
     paddingVertical: 12,
     alignItems: "center",
     borderRadius: 8,
@@ -293,7 +262,7 @@ const styles = StyleSheet.create({
   chatButtonText: { color: "#fff", fontSize: 16 },
   assignButton: {
     marginTop: 24,
-    backgroundColor: "#007AFF",
+    backgroundColor: "#65ADD4",
     paddingVertical: 14,
     alignItems: "center",
     borderRadius: 8,
@@ -360,5 +329,20 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontWeight: "600",
   },
-
+  timeInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    paddingHorizontal: 10,
+    paddingVertical: 8,
+    borderRadius: 4,
+    marginVertical: 4,
+    minWidth: 50,
+    textAlign: 'center',
+  },
+  inputRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    marginTop: 10,
+    gap: 24,
+  }
 });

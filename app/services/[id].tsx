@@ -75,24 +75,27 @@ export default function ServiceDetail() {
   const onConfirm = async () => {
     try {
       const fileIds: string[] = [];
-
+  
       for (const file of mediaFiles) {
         const id = await uploadFileToDirectus(file.uri, accessToken!);
         fileIds.push(id);
       }
-
+  
+      // 🔄 Transform to match Directus many-to-many payload
+      const fileRelationObjects = fileIds.map(id => ({ directus_files_id: id }));
+  
       await createRequest(
         {
           service: Number(id),
           profile: user!.profile_id,
           additional_details: description,
-          images: fileIds.length === 1 ? fileIds[0] : fileIds,
+          files: fileRelationObjects, // ✅ send as relation objects
           prefered_date: selectedDate?.toISOString().split("T")[0] || "",
           prefered_time_slot: selectedSlot || "",
         },
         accessToken!
       );
-
+  
       router.push({
         pathname: "/booking/confirmation",
         params: { id, location, description, datetime: selectedSlot },
@@ -102,8 +105,7 @@ export default function ServiceDetail() {
       alert("Something went wrong while submitting your request.");
     }
   };
-
-
+  
   const handleReviewSubmit = async () => {
     if (!reviewRating || !lastRequest?.id) {
       alert("Please leave a star rating before proceeding.");
@@ -157,7 +159,7 @@ export default function ServiceDetail() {
 
       try {
         const last = await getLastRequestByCustomer(user.profile_id, accessToken);
-        console.log(last)
+        
         if (last) {
           setLastRequest(last);
           setShowReviewModal(true);

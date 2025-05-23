@@ -4,6 +4,7 @@ import { ThemeProvider, DefaultTheme } from "@react-navigation/native";
 import { View, StyleSheet } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { AuthProvider } from "@/context/AuthContext";
+import BasicHeader from "@/components/BasicHeader";
 
 export default function RootLayout() {
   return (

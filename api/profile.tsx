@@ -11,7 +11,7 @@ export const getTechnicians = async (accessToken: string) => {
   );
 
   const json = await res.json();
-  console.log(json); 
+
   if (!res.ok || json.errors) throw new Error("Failed to fetch technicians");
   return json.data;
 };

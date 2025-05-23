@@ -29,7 +29,7 @@ export const createBooking = async (
 
 export const getTechnicianBookings = async (technicianId: number, accessToken: string) => {
   const res = await fetch(
-    `${baseUrl}/items/booking?fields=id,time_slot,date,technician_notes,request.*,technician.id,request.service.title,request.profile.*,request.profile.user.first_name&filter[technician][_eq]=${technicianId}&filter[request][status][_eq]=scheduled`,
+    `${baseUrl}/items/booking?fields=id,time_slot,date,technician_notes,request.*,technician.id,request.service.title,request.profile.*,request.profile.user.first_name&filter[technician][_eq]=${technicianId}`,
     {
       headers: {
         Authorization: `Bearer ${accessToken}`,
@@ -38,7 +38,7 @@ export const getTechnicianBookings = async (technicianId: number, accessToken: s
   );
 
   const json = await res.json();
-  console.log(json);
+
   if (!res.ok || json.errors) throw new Error("Failed to fetch technician bookings");
   return json.data;
 };
