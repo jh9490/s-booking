@@ -96,7 +96,3 @@ npm start
 * Push notifications
 
 ---
-
-## 🙏 Credits
-
-Developed and maintained by the ANC FM team with ❤️ and a focus on real-world field service needs.
