@@ -1,79 +1,102 @@
-# Welcome to your Expo app 👋
+# ANC FM — Mobile Service Booking App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+ANC FM is a mobile application built with React Native and Expo, designed for field technicians, supervisors, and customers to manage service requests efficiently. This project is currently in its second sprint with core features implemented.
 
-## Get started
+---
 
-1. Install dependencies
+## 🚀 Features (Sprint 2 Complete)
 
-   ```bash
-   npm install
-   ```
+### ✅ Technician Module
 
-2. Start the app
+* View assigned bookings
+* Filter by status: Scheduled, Pending, Done, Canceled
+* View detailed request info
+* Add technician notes and update request status
+* Preview attached images (with full-screen modal)
 
-   ```bash
-    npx expo start
-   ```
+### ✅ File Upload & Management
 
-In the output, you'll find options to open the app in a
+* Users can attach one or multiple images to service requests
+* Uploaded images are stored in Directus and linked via many-to-many relation
+* Technicians can preview these files in the detail screen
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+### ✅ Supervisor Module
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+* Assign technicians to requests
+* Choose preferred date and time range
+* Internal chat between supervisor and technician
 
-## Get a fresh project
+### ✅ UI Enhancements
 
-When you're ready, run:
+* Color-coded filters and buttons
+* Improved cards and layout spacing
+* Mobile-friendly and responsive design
+
+---
+
+## 📦 Tech Stack
+
+* **Frontend**: React Native, Expo, NativeWind, TailwindCSS
+* **Backend**: Directus (headless CMS + REST API)
+* **Database**: PostgreSQL (via Directus)
+* **Auth**: JWT (custom login endpoint)
+* **Storage**: Directus Files API
+
+---
+
+## 📂 Project Structure
 
 ```bash
-npm run reset-project
+app/
+  ├── (tabs)/
+  ├── (supervisorTabs)/
+  ├── technician/
+  ├── booking/
+  ├── services/
+  ├── login.tsx
+  └── +not-found.tsx
+
+api/
+context/
+assets/
+components/
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+---
 
-## Learn more
+## 🛠️ Development
 
-To learn more about developing your project with Expo, look at the following resources:
+```bash
+# Install dependencies
+npm install
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+# Start Expo server
+npm start
+```
 
-## Join the community
+> You must wrap your root layout in `GestureHandlerRootView`.
 
-Join our community of developers creating universal apps.
+---
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+## 📤 Creating a Release
 
+1. Push all changes
+2. Go to GitHub → Releases → "Draft a new release"
+3. Tag with something like `v2.0.0` or `sprint-2-complete`
+4. Describe the sprint deliverables
+5. Click **Publish release**
 
-app --- 
+---
 
-      (tabs) 
-            _layout.tsx  --- tabs 
-            profile.tsx
-            messages.tsx
-            index.tsx  -> here i have the services 
-      booking
-            confirmation.tsx 
-      (supervisorTabs)
-            requests
-                  [id].tsx
-            _layout.tsx
-            index.tsx
-      services
-            [id].tsx
-      technican
-            [id].tsx
-            index.tsx 
-      _layout.tsx
-      +not-found.tsx      
-      index.tsx 
-      login.tsx
-context 
-      UserContext.tsx
-api
-      requests.tsx
+## 📅 Sprint 3 Goals (planned)
+
+* Customer ratings and reviews
+* Technician location tracking
+* Multi-language support (i18n)
+* Push notifications
+
+---
+
+## 🙏 Credits
+
+Developed and maintained by the ANC FM team with ❤️ and a focus on real-world field service needs.
