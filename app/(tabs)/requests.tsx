@@ -1,7 +1,9 @@
 import { useEffect, useState } from 'react';
-import { FlatList, Text, View, ActivityIndicator } from 'react-native';
+import { FlatList, Text, View, ActivityIndicator, Pressable } from 'react-native';
 import { useAuth } from '@/context/AuthContext';
 import { getCustomerRequests } from '@/api/requests';
+import { router } from 'expo-router';
+import BasicHeader from '@/components/BasicHeader';
 
 
 const mockRequests = [
@@ -41,13 +43,32 @@ export default function RequestsScreen() {
   }
 
   return (
-    <View className="flex-1 bg-white px-6 py-10">
-      <Text className="text-2xl font-bold mb-6">My Requests</Text>
+    <View className="flex-1 bg-white">
+
+      <BasicHeader title="My Requests" showLogout  />
+
+      <View className="flex-1 bg-white px-6 py-10">
       <FlatList
         data={requests}
         keyExtractor={(item) => item.id.toString()}
         renderItem={({ item }) => (
-          <View className="mb-3 border border-gray-200 rounded-lg p-4">
+          <Pressable
+            className="mb-3 border border-gray-200 rounded-lg p-4"
+            onPress={() =>
+              router.push({
+                pathname: '/(tabs)/requests/[id]',
+                params: {
+                  id: item.id,
+                  first_name: item.supervisor?.user?.first_name || '',
+                  mobile_number: item.supervisor?.user?.mobile || '',
+                  unit: item.unit || '',
+                  prefered_date: item.prefered_date || '',
+                  prefered_time_slot: item.prefered_time_slot || '',
+                  status: item.status,
+                },
+              })
+            }
+          >
             <Text className="text-lg font-medium">{item.service?.title || 'N/A'}</Text>
             <Text className="text-gray-500">ID: {item.id}</Text>
             <Text className={`mt-1 font-semibold ${item.status === 'done'
@@ -61,10 +82,11 @@ export default function RequestsScreen() {
             <Text className="text-gray-400 text-sm mt-1">
               Last updated: {new Date(item.date_updated).toLocaleDateString()}
             </Text>
-
-          </View>
+          </Pressable>
         )}
+
       />
+    </View>
     </View>
   );
 }

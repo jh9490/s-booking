@@ -13,6 +13,7 @@ import {
   Platform,
   KeyboardAvoidingView,
   SafeAreaView,
+  RefreshControl,
 } from "react-native";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
@@ -21,27 +22,32 @@ import { useAuth } from '@/context/AuthContext';
 import { getTechnicians } from "@/api/profile";
 import { createBooking } from "@/api/booking";
 import { updateRequestStatus } from "@/api/requests";
+import { getChatMessages, sendChatMessage } from "@/api/chat";
 
 export default function RequestDetail() {
   const { id, first_name, mobile_number, unit, prefered_date, prefered_time_slot, status } = useLocalSearchParams();
   const router = useRouter();
-  const { accessToken } = useAuth();
+  const { accessToken, user } = useAuth();
 
-  const [technicians, setTechnicians] = useState([]);
+  const [technicians, setTechnicians] = useState<Array<{ id: number; user?: { first_name?: string } }>>([]);
+
   const [selectedDate, setSelectedDate] = useState(new Date());
   const [startHour, setStartHour] = useState(9);
   const [endHour, setEndHour] = useState(12);
-  const [selectedTechnician, setSelectedTechnician] = useState(null);
+  const [selectedTechnician, setSelectedTechnician] = useState<number | null>(null);
   const [chatVisible, setChatVisible] = useState(false);
-  const [messages, setMessages] = useState([
-    { id: "1", text: "Hello, I need help with my service.", sender: "customer" },
-    { id: "2", text: "Sure, I'm here to assist.", sender: "supervisor" },
-  ]);
+  const [messages, setMessages] = useState<Array<{
+    id: string;
+    text: string;
+    sender: string;
+    date_created?: string;
+  }>>([]);
   const [input, setInput] = useState("");
-  const flatListRef = useRef(null);
-
+  const flatListRef = useRef<FlatList<any>>(null);
+  const [refreshing, setRefreshing] = useState(false);
   useEffect(() => {
     const fetchTechs = async () => {
+      if (!accessToken) return; // guard clause for null
       try {
         const data = await getTechnicians(accessToken);
         setTechnicians(data);
@@ -52,14 +58,44 @@ export default function RequestDetail() {
     fetchTechs();
   }, []);
 
-  const formatHour = (hour) => {
+  useEffect(() => {
+    if (!chatVisible) return;
+
+    const loadMessages = async () => {
+      try {
+        if (!accessToken || !user?.id) return; // Guard clause
+
+        const data = await getChatMessages(Number(id), accessToken);
+
+        setMessages(
+          data.map((msg: any) => ({
+            id: msg.id.toString(),
+            text: msg.message,
+            sender: msg.sender?.id === user.id ? 'supervisor' : 'customer',
+            date_created: msg.date_created
+          }))
+        );
+      } catch (err) {
+        console.error("Failed to load chat messages:", (err as Error).message);
+      }
+    };
+
+
+    loadMessages();
+  }, [chatVisible]);
+
+
+  const formatHour = (hour: number): string => {
     const isPM = hour >= 12;
     const displayHour = hour % 12 === 0 ? 12 : hour % 12;
     return `${displayHour} ${isPM ? "PM" : "AM"}`;
   };
 
+
+
   const onAssign = async () => {
     try {
+      if (!accessToken) return; // guard clause for null
       if (!selectedTechnician) throw new Error("Technician not selected");
       const timeSlot = `${formatHour(startHour)}|${formatHour(endHour)}`;
       const formattedDate = selectedDate.toISOString().split("T")[0];
@@ -75,21 +111,59 @@ export default function RequestDetail() {
       alert("Booking successfully created");
       router.back();
     } catch (err) {
-      console.error("Booking failed:", err.message);
+      console.error("Send failed:", (err as Error).message);
       alert("Failed to create booking");
     }
   };
 
-  const sendMessage = () => {
+  const sendMessage = async () => {
     if (!input.trim()) return;
-    const newMsg = {
-      id: Date.now().toString(),
-      text: input,
-      sender: "supervisor",
-    };
-    setMessages([...messages, newMsg]);
-    setInput("");
-    setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+
+    try {
+      if (!accessToken) return; // guard clause for null
+      await sendChatMessage(Number(id), input, accessToken);
+      setInput("");
+
+      // Optional: re-fetch messages or append locally
+      setMessages(prev => [...prev, {
+        id: Date.now().toString(),
+        text: input,
+        sender: 'supervisor',
+        date_created: new Date().toISOString(), // ✅ use ISO string instead
+      }]);
+      
+      setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
+    } catch (err) {
+      console.error("Send failed:", err);
+    }
+  };
+
+
+  const onRefresh = async () => {
+    if (!accessToken || !user?.id) return;
+
+    setRefreshing(true);
+    try {
+      const data = await getChatMessages(Number(id), accessToken);
+
+      setMessages(
+        data.map((msg: any) => ({
+          id: msg.id.toString(),
+          text: msg.message,
+          sender: msg.sender?.id === user.id ? "supervisor" : "customer",
+          date_created: msg.date_created
+        }))
+      );
+    } catch (err) {
+      console.error("Refresh failed:", (err as Error).message);
+    }
+    setRefreshing(false);
+  };
+
+
+  const formatTime = (isoString: string) => {
+    const date = new Date(isoString);
+    return `${date.getHours()}:${date.getMinutes().toString().padStart(2, '0')}`;
   };
 
   return (
@@ -169,9 +243,9 @@ export default function RequestDetail() {
         ))}
       </ScrollView>
 
-      {/* <Pressable style={styles.chatButton} onPress={() => setChatVisible(true)}>
+      <Pressable style={styles.chatButton} onPress={() => setChatVisible(true)}>
         <Text style={styles.chatButtonText}>Chat with Customer</Text>
-      </Pressable> */}
+      </Pressable>
 
       <Pressable
         style={[styles.assignButton, (!selectedTechnician || status === "done") && { backgroundColor: "#ccc" }]}
@@ -206,10 +280,18 @@ export default function RequestDetail() {
                   }}
                 >
                   <Text>{item.text}</Text>
+                  {item.date_created && (
+                    <Text style={{ fontSize: 10, color: '#666', marginTop: 4, textAlign: 'right' }}>
+                      {formatTime(item.date_created)}
+                    </Text>
+                  )}
                 </View>
               )}
               contentContainerStyle={{ padding: 10 }}
               showsVerticalScrollIndicator={false}
+              refreshControl={
+                <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
+              }
             />
             <View style={styles.chatInputRow}>
               <TextInput

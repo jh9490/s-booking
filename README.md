@@ -49,6 +49,12 @@ ANC FM is a mobile application built with React Native and Expo, designed for fi
 ```bash
 app/
   ├── (tabs)/
+            requests
+              [id].tsx
+            _layout.tsx
+            index.tsx
+            profile.tsx
+            requests.tsx
   ├── (supervisorTabs)/
   ├── technician/
   ├── booking/

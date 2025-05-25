@@ -50,6 +50,7 @@ export default function TabLayout() {
           ),
         }}
       />
+      <Tabs.Screen name="requests/[id]" options={{ href: null }} />
     </Tabs>
   );
 }
