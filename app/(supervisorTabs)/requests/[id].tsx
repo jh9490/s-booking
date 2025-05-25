@@ -82,6 +82,11 @@ export default function RequestDetail() {
 
 
     loadMessages();
+    // Set interval to reload every 5 seconds
+    const interval = setInterval(loadMessages, 5000);
+
+    // Clear on unmount or when modal closes
+    return () => clearInterval(interval);
   }, [chatVisible]);
 
 
@@ -131,7 +136,7 @@ export default function RequestDetail() {
         sender: 'supervisor',
         date_created: new Date().toISOString(), // ✅ use ISO string instead
       }]);
-      
+
       setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
     } catch (err) {
       console.error("Send failed:", err);

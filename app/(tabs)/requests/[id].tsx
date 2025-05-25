@@ -53,19 +53,22 @@ export default function RequestDetail() {
     const flatListRef = useRef<FlatList<any>>(null);
     useEffect(() => {
         const fetch = async () => {
-          if (!accessToken || !id) return;
-      
-          try {
-            const data = await getRequest(id, accessToken);
-            setCurrentRequest(data[0]);
-          } catch (err) {
-            console.error('Failed to load request', err);
-          }
+            if (!accessToken || !id) return;
+
+            const requestId = Array.isArray(id) ? id[0] : id;
+
+            try {
+                const data = await getRequest(requestId, accessToken);
+                setCurrentRequest(data[0]);
+            } catch (err) {
+                console.error('Failed to load request', err);
+            }
         };
-      
+
         fetch();
-      }, [id, accessToken]); // <-- add `id` and `accessToken` as dependencies
-      
+    }, [id?.toString(), accessToken]); // Ensures effect reruns only when id changes
+
+
 
     useEffect(() => {
         if (!chatVisible) return;
@@ -91,6 +94,11 @@ export default function RequestDetail() {
 
 
         loadMessages();
+        // Set interval to reload every 5 seconds
+        const interval = setInterval(loadMessages, 5000);
+
+        // Clear on unmount or when modal closes
+        return () => clearInterval(interval);
     }, [chatVisible]);
 
 
@@ -117,7 +125,7 @@ export default function RequestDetail() {
                 sender: 'supervisor',
                 date_created: new Date().toISOString(), // ✅ use ISO string instead
             }]);
-            
+
             setTimeout(() => flatListRef.current?.scrollToEnd({ animated: true }), 100);
         } catch (err) {
             console.error("Send failed:", err);
@@ -154,40 +162,40 @@ export default function RequestDetail() {
 
     const getStatusStyles = (status: string) => {
         switch (status) {
-          case "done":
-            return {
-              backgroundColor: "#ecfdf5", // light green
-              borderColor: "#34d399",
-              textColor: "#065f46",
-            };
-          case "scheduled":
-          case "pending":
-            return {
-              backgroundColor: "#fefce8", // light orange
-              borderColor: "#fde68a",
-              textColor: "#92400e",
-            };
-          case "canceled":
-            return {
-              backgroundColor: "#fef2f2", // light red
-              borderColor: "#fecaca",
-              textColor: "#991b1b",
-            };
-          case "new":
-            return {
-              backgroundColor: "#fdf2f8", // light purple
-              borderColor: "#f9a8d4",
-              textColor: "#B42D90",
-            };
-          default:
-            return {
-              backgroundColor: "#f3f4f6", // neutral gray
-              borderColor: "#d1d5db",
-              textColor: "#374151",
-            };
+            case "done":
+                return {
+                    backgroundColor: "#ecfdf5", // light green
+                    borderColor: "#34d399",
+                    textColor: "#065f46",
+                };
+            case "scheduled":
+            case "pending":
+                return {
+                    backgroundColor: "#fefce8", // light orange
+                    borderColor: "#fde68a",
+                    textColor: "#92400e",
+                };
+            case "canceled":
+                return {
+                    backgroundColor: "#fef2f2", // light red
+                    borderColor: "#fecaca",
+                    textColor: "#991b1b",
+                };
+            case "new":
+                return {
+                    backgroundColor: "#fdf2f8", // light purple
+                    borderColor: "#f9a8d4",
+                    textColor: "#B42D90",
+                };
+            default:
+                return {
+                    backgroundColor: "#f3f4f6", // neutral gray
+                    borderColor: "#d1d5db",
+                    textColor: "#374151",
+                };
         }
-      };
-      
+    };
+
 
 
     return (
@@ -232,7 +240,7 @@ export default function RequestDetail() {
                 )}
 
                 {currentRequest?.status && (() => {
-                    
+
                     const { backgroundColor, borderColor, textColor } = getStatusStyles(currentRequest.status);
                     return (
                         <View style={[styles.infoCard, { backgroundColor, borderColor }]}>
