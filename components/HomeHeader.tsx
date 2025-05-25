@@ -46,23 +46,8 @@ export default function HomeHeader() {
 
   return (
     <SafeAreaView edges={['top']} className="bg-white">
-      {/* Greeting + Location + Search */}
-      <View className="px-4 pt-2 pb-4" style={styles.headerRow}>
-        <Text className="text-lg font-semibold">👋 Hello, {firstName}</Text>
-        <Pressable onPress={handleLogout} style={{ padding: 12 }}>
-          <Text style={{ color: '#007AFF', fontWeight: 'bold' }}>Logout</Text>
-        </Pressable>
-        {/* <View className="flex-row items-center bg-gray-100 rounded-lg px-3 py-2">
-          <Ionicons name="search" size={20} color="#9CA3AF" />
-          <TextInput
-            placeholder="Search for Dry Cleaningr"
-            className="ml-2 flex-1 text-sm text-gray-800"
-          />
-        </View> */}
-      </View>
-
       {/* Banner Carousel */}
-      <View>
+      <View className="pb-4" >
         <FlatList
           ref={flatListRef}
           data={banners}
@@ -74,7 +59,7 @@ export default function HomeHeader() {
           renderItem={({ item }) => (
             <Image
               source={item}
-              style={{ width, height: 160 }}
+              style={{ width, height: 200}}
               resizeMode="cover"
             />
           )}

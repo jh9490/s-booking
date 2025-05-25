@@ -5,8 +5,8 @@ import HomeHeader from '@/components/HomeHeader';
 import { useAuth } from '@/context/AuthContext';
 import { LinearGradient } from 'expo-linear-gradient';
 import { cssInterop } from "nativewind";
-
-const baseUrl = Platform.OS === 'android' ? 'http://10.0.2.2:8055' : 'http://localhost:8055';
+import { baseUrl } from '@/config/config';
+import BasicHeader from '@/components/BasicHeader';
 
 type Service = {
   id: number;
@@ -156,6 +156,7 @@ export default function HomeScreen() {
 
   return (
     <ScrollView className="flex-1 bg-white" contentInsetAdjustmentBehavior="never">
+       <BasicHeader title='Home' showHello showLogout/>
       <HomeHeader />
 
       <View className="p-4">
