@@ -1,6 +1,6 @@
-# ANC FM — Mobile Service Booking App
+# S-Booking — Mobile Service Booking App
 
-ANC FM is a mobile application built with React Native and Expo, designed for field technicians, supervisors, and customers to manage service requests efficiently. This project is currently in its second sprint with core features implemented.
+S-Booking is a mobile application built with React Native and Expo, designed for field technicians, supervisors, and customers to manage service requests efficiently. This project is currently in its second sprint with core features implemented.
 
 ---
 
